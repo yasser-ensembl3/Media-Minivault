@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { ContentItem } from "./content-item"
 import { FilterBar } from "./filter-bar"
 import { SearchInput } from "./search-input"
+import { AddContentForm } from "./add-content-form"
 import { Loader2, Inbox, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -162,6 +163,9 @@ export function ContentList() {
           </Button>
         </div>
       </div>
+
+      {/* Add Content */}
+      <AddContentForm onSuccess={fetchContent} />
 
       {/* Stats */}
       <div className="text-sm text-zinc-500">
