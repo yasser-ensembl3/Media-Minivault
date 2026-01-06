@@ -1,9 +1,34 @@
-import { Client } from "@notionhq/client"
 import { NextResponse } from "next/server"
 
-const notion = new Client({
-  auth: process.env.NOTION_TOKEN,
-})
+const NOTION_TOKEN = process.env.NOTION_TOKEN
+const DATABASE_ID = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID
+
+async function queryNotionDatabase(filters: object[] = []) {
+  const response = await fetch(
+    `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        filter: filters.length > 0 ? { and: filters } : undefined,
+        sorts: [{ property: "Date Added", direction: "descending" }],
+        page_size: 100,
+      }),
+      next: { revalidate: 60 }, // Cache for 60 seconds
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || "Failed to query Notion")
+  }
+
+  return response.json()
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -12,9 +37,7 @@ export async function GET(request: Request) {
   const source = searchParams.get("source")
   const search = searchParams.get("search")
 
-  const databaseId = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID
-
-  if (!databaseId) {
+  if (!DATABASE_ID) {
     return NextResponse.json(
       { error: "Database ID not configured" },
       { status: 500 }
@@ -23,57 +46,25 @@ export async function GET(request: Request) {
 
   try {
     // Build filters
-    const filters: Array<{
-      property: string
-      select?: { equals: string }
-      rich_text?: { contains: string }
-      title?: { contains: string }
-    }> = []
+    const filters: object[] = []
 
     if (type && type !== "all") {
-      filters.push({
-        property: "Type",
-        select: { equals: type },
-      })
+      filters.push({ property: "Type", select: { equals: type } })
     }
 
     if (status && status !== "all") {
-      filters.push({
-        property: "Status",
-        select: { equals: status },
-      })
+      filters.push({ property: "Status", select: { equals: status } })
     }
 
     if (source && source !== "all") {
-      filters.push({
-        property: "Source",
-        select: { equals: source },
-      })
+      filters.push({ property: "Source", select: { equals: source } })
     }
 
     if (search) {
-      filters.push({
-        property: "Title",
-        title: { contains: search },
-      })
+      filters.push({ property: "Name", title: { contains: search } })
     }
 
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      filter:
-        filters.length > 0
-          ? {
-              and: filters,
-            }
-          : undefined,
-      sorts: [
-        {
-          property: "Date Added",
-          direction: "descending",
-        },
-      ],
-      page_size: 100,
-    })
+    const response = await queryNotionDatabase(filters)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = response.results.map((page: any) => {
@@ -82,8 +73,8 @@ export async function GET(request: Request) {
       return {
         id: page.id,
         title:
-          properties.Title?.title?.[0]?.plain_text ||
           properties.Name?.title?.[0]?.plain_text ||
+          properties.Title?.title?.[0]?.plain_text ||
           "Untitled",
         url: properties.URL?.url || null,
         type: properties.Type?.select?.name || null,
@@ -102,8 +93,12 @@ export async function GET(request: Request) {
 
     // Get unique values for filters
     const allTypes = [...new Set(items.map((item) => item.type).filter(Boolean))]
-    const allSources = [...new Set(items.map((item) => item.source).filter(Boolean))]
-    const allStatuses = [...new Set(items.map((item) => item.status).filter(Boolean))]
+    const allSources = [
+      ...new Set(items.map((item) => item.source).filter(Boolean)),
+    ]
+    const allStatuses = [
+      ...new Set(items.map((item) => item.status).filter(Boolean)),
+    ]
 
     return NextResponse.json({
       items,
