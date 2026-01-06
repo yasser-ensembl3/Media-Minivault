@@ -138,7 +138,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get page info
+    // First try as a page
     const pageResponse = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
       headers: {
         Authorization: `Bearer ${NOTION_TOKEN}`,
@@ -146,49 +146,116 @@ export async function GET(request: Request) {
       },
     })
 
-    if (!pageResponse.ok) {
-      const error = await pageResponse.json()
-      throw new Error(error.message || "Failed to fetch page")
-    }
+    if (pageResponse.ok) {
+      // It's a page
+      const page = await pageResponse.json()
 
-    const page = await pageResponse.json()
-
-    // Get page title
-    let title = "Untitled"
-    const titleProp = page.properties?.title || page.properties?.Name
-    if (titleProp?.title?.[0]?.plain_text) {
-      title = titleProp.title[0].plain_text
-    }
-
-    // Get page blocks (content)
-    const blocksResponse = await fetch(
-      `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`,
-      {
-        headers: {
-          Authorization: `Bearer ${NOTION_TOKEN}`,
-          "Notion-Version": "2022-06-28",
-        },
+      // Get page title
+      let title = "Untitled"
+      const titleProp = page.properties?.title || page.properties?.Name
+      if (titleProp?.title?.[0]?.plain_text) {
+        title = titleProp.title[0].plain_text
       }
-    )
 
-    if (!blocksResponse.ok) {
-      const error = await blocksResponse.json()
-      throw new Error(error.message || "Failed to fetch blocks")
+      // Get page blocks (content)
+      const blocksResponse = await fetch(
+        `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${NOTION_TOKEN}`,
+            "Notion-Version": "2022-06-28",
+          },
+        }
+      )
+
+      let html = ""
+      if (blocksResponse.ok) {
+        const blocksData = await blocksResponse.json()
+        html = blocksToHtml(blocksData.results)
+      }
+
+      return NextResponse.json({
+        type: "page",
+        title,
+        html,
+        icon: page.icon?.emoji || null,
+        cover: page.cover?.external?.url || page.cover?.file?.url || null,
+      })
     }
 
-    const blocksData = await blocksResponse.json()
-    const html = blocksToHtml(blocksData.results)
-
-    return NextResponse.json({
-      title,
-      html,
-      icon: page.icon?.emoji || null,
-      cover: page.cover?.external?.url || page.cover?.file?.url || null,
+    // Try as a database
+    const dbResponse = await fetch(`https://api.notion.com/v1/databases/${pageId}`, {
+      headers: {
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Notion-Version": "2022-06-28",
+      },
     })
+
+    if (dbResponse.ok) {
+      const db = await dbResponse.json()
+      const title = db.title?.[0]?.plain_text || "Untitled Database"
+
+      // Query database entries
+      const queryResponse = await fetch(
+        `https://api.notion.com/v1/databases/${pageId}/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${NOTION_TOKEN}`,
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ page_size: 50 }),
+        }
+      )
+
+      let entries: { id: string; title: string; url: string }[] = []
+      if (queryResponse.ok) {
+        const queryData = await queryResponse.json()
+        entries = queryData.results.map((page: any) => {
+          // Find title property
+          let pageTitle = "Untitled"
+          for (const [, prop] of Object.entries(page.properties) as [string, any][]) {
+            if (prop.type === "title" && prop.title?.[0]?.plain_text) {
+              pageTitle = prop.title[0].plain_text
+              break
+            }
+          }
+          return {
+            id: page.id,
+            title: pageTitle,
+            url: page.url,
+          }
+        })
+      }
+
+      // Generate HTML for database view
+      const html = `
+        <div class="text-zinc-400 mb-4">${entries.length} entries</div>
+        <div class="space-y-2">
+          ${entries.map(entry => `
+            <a href="${entry.url}" target="_blank" class="block p-3 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors">
+              <span class="text-zinc-200">${entry.title}</span>
+            </a>
+          `).join("")}
+        </div>
+      `
+
+      return NextResponse.json({
+        type: "database",
+        title,
+        html,
+        icon: db.icon?.emoji || "📊",
+        cover: db.cover?.external?.url || db.cover?.file?.url || null,
+        entries,
+      })
+    }
+
+    throw new Error("Could not fetch Notion content")
   } catch (error) {
-    console.error("Error fetching Notion page:", error)
+    console.error("Error fetching Notion content:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch page" },
+      { error: error instanceof Error ? error.message : "Failed to fetch content" },
       { status: 500 }
     )
   }
