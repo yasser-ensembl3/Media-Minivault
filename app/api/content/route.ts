@@ -122,8 +122,23 @@ export async function GET(request: Request) {
 
     const response = await queryNotionDatabase(filters)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = response.results.map((page: any) => {
+    interface NotionPage {
+      id: string
+      url: string
+      created_time: string
+      properties: {
+        Name?: { title?: Array<{ plain_text?: string }> }
+        Title?: { title?: Array<{ plain_text?: string }> }
+        URL?: { url?: string }
+        Type?: { select?: { name?: string } }
+        Source?: { select?: { name?: string } }
+        Status?: { select?: { name?: string } }
+        "Date Added"?: { date?: { start?: string } }
+        Notes?: { rich_text?: Array<{ plain_text?: string }> }
+      }
+    }
+
+    const items = (response.results as NotionPage[]).map((page) => {
       const properties = page.properties
 
       return {
