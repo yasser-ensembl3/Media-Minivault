@@ -1,31 +1,29 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '@/components/auth/session-provider'
+import type { Metadata, Viewport } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'MiniVault - Project Management Suite',
-  description: 'Unified project management dashboard integrating Notion, Google Drive, Gmail, GitHub and more.',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
+  title: process.env.NEXT_PUBLIC_SITE_NAME || "ContentVault",
+  description: "Your daily entry point for content consumption",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className={`${inter.className} bg-zinc-950 text-zinc-100 antialiased`}>
+        {children}
       </body>
     </html>
   )
