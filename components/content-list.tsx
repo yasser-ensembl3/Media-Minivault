@@ -15,8 +15,6 @@ interface ContentItemData {
   source: string | null
   status: string
   dateAdded: string
-  tags: string[]
-  priority: string | null
   notionUrl: string
 }
 
@@ -91,11 +89,7 @@ export function ContentList() {
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      result = result.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query) ||
-          item.tags.some((tag) => tag.toLowerCase().includes(query))
-      )
+      result = result.filter((item) => item.title.toLowerCase().includes(query))
     }
 
     setFilteredItems(result)

@@ -12,8 +12,6 @@ interface ContentItemProps {
     source: string | null
     status: string
     dateAdded: string
-    tags: string[]
-    priority: string | null
     notionUrl: string
   }
 }
@@ -88,11 +86,6 @@ export function ContentItem({ item }: ContentItemProps) {
                 {item.type}
               </Badge>
             )}
-            {item.priority === "High" && (
-              <Badge variant="outline" className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                High
-              </Badge>
-            )}
           </div>
 
           <h3 className="font-medium text-zinc-100 group-hover:text-white truncate mb-2">
@@ -110,23 +103,6 @@ export function ContentItem({ item }: ContentItemProps) {
             <span>•</span>
             <span>{getRelativeTime(item.dateAdded)}</span>
           </div>
-
-          {item.tags.length > 0 && (
-            <div className="flex items-center gap-1 mt-2 flex-wrap">
-              {item.tags.slice(0, 3).map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="bg-zinc-800/50 text-zinc-400 border-zinc-700 text-xs"
-                >
-                  {tag}
-                </Badge>
-              ))}
-              {item.tags.length > 3 && (
-                <span className="text-xs text-zinc-500">+{item.tags.length - 3}</span>
-              )}
-            </div>
-          )}
         </div>
 
         <ExternalLink className="h-4 w-4 text-zinc-500 group-hover:text-zinc-300 flex-shrink-0 mt-1" />

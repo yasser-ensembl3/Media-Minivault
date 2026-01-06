@@ -81,11 +81,6 @@ export async function GET(request: Request) {
         source: properties.Source?.select?.name || null,
         status: properties.Status?.select?.name || "Inbox",
         dateAdded: properties["Date Added"]?.date?.start || page.created_time,
-        tags:
-          properties.Tags?.multi_select?.map(
-            (tag: { name: string }) => tag.name
-          ) || [],
-        priority: properties.Priority?.select?.name || null,
         notes: properties.Notes?.rich_text?.[0]?.plain_text || null,
         notionUrl: page.url,
       }
