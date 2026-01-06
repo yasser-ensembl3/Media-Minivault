@@ -110,7 +110,8 @@ function getRelativeTime(dateString: string): string {
 export function ContentItem({ item }: ContentItemProps) {
   const [showPreview, setShowPreview] = useState(false)
   const linkType = detectLinkType(item.url)
-  const isEmbeddable = linkType !== "external"
+  // Only Google Docs/Sheets can be embedded (Notion blocks iframes)
+  const isEmbeddable = linkType === "google-doc" || linkType === "google-sheet"
 
   const handleClick = () => {
     if (isEmbeddable && item.url) {
