@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, FileText, Video, Headphones, BookOpen, FileCode, MessageSquare, Wrench, File, X, Database, FileSpreadsheet } from "lucide-react"
+import { ExternalLink, FileText, Video, Headphones, BookOpen, FileCode, MessageSquare, Wrench, File, X, Database, FileSpreadsheet, Loader2 } from "lucide-react"
 
 interface ContentItemProps {
   item: {
@@ -60,7 +60,6 @@ function detectLinkType(url: string | null): LinkType {
 
 function getEmbedUrl(url: string, linkType: LinkType): string {
   if (linkType === "google-doc" || linkType === "google-sheet") {
-    // Add embedded view parameter for Google Docs/Sheets
     if (url.includes("/edit")) {
       return url.replace("/edit", "/preview")
     }
@@ -107,19 +106,51 @@ function getRelativeTime(dateString: string): string {
   return `${Math.floor(diffInDays / 365)} years ago`
 }
 
+interface NotionPreview {
+  title: string
+  html: string
+  icon: string | null
+  cover: string | null
+}
+
 export function ContentItem({ item }: ContentItemProps) {
   const [showPreview, setShowPreview] = useState(false)
-  const linkType = detectLinkType(item.url)
-  // Only Google Docs/Sheets can be embedded (Notion blocks iframes)
-  const isEmbeddable = linkType === "google-doc" || linkType === "google-sheet"
+  const [notionContent, setNotionContent] = useState<NotionPreview | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleClick = () => {
-    if (isEmbeddable && item.url) {
-      setShowPreview(true)
-    } else if (item.url) {
-      window.open(item.url, "_blank", "noopener,noreferrer")
-    } else {
+  const linkType = detectLinkType(item.url)
+  const isEmbeddable = linkType !== "external"
+
+  const handleClick = async () => {
+    if (!item.url) {
       window.open(item.notionUrl, "_blank", "noopener,noreferrer")
+      return
+    }
+
+    if (linkType === "notion") {
+      // Fetch Notion content via API
+      setShowPreview(true)
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch(`/api/notion-preview?url=${encodeURIComponent(item.url)}`)
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || "Failed to load")
+        }
+        const data = await response.json()
+        setNotionContent(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load")
+      } finally {
+        setLoading(false)
+      }
+    } else if (linkType === "google-doc" || linkType === "google-sheet") {
+      setShowPreview(true)
+    } else {
+      window.open(item.url, "_blank", "noopener,noreferrer")
     }
   }
 
@@ -128,6 +159,12 @@ export function ContentItem({ item }: ContentItemProps) {
     if (item.url) {
       window.open(item.url, "_blank", "noopener,noreferrer")
     }
+  }
+
+  const closePreview = () => {
+    setShowPreview(false)
+    setNotionContent(null)
+    setError(null)
   }
 
   return (
@@ -195,12 +232,21 @@ export function ContentItem({ item }: ContentItemProps) {
 
       {/* Preview Modal */}
       {showPreview && item.url && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="relative w-full max-w-6xl h-[90vh] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={closePreview}
+        >
+          <div
+            className="relative w-full max-w-4xl h-[90vh] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
             <div className="flex items-center justify-between p-3 border-b border-zinc-700 bg-zinc-800">
               <div className="flex items-center gap-2">
                 {getLinkIcon(linkType)}
-                <span className="text-sm text-zinc-300 truncate max-w-md">{item.title}</span>
+                <span className="text-sm text-zinc-300 truncate max-w-md">
+                  {notionContent?.title || item.title}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -215,20 +261,63 @@ export function ContentItem({ item }: ContentItemProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setShowPreview(false)}
+                  onClick={closePreview}
                   className="text-zinc-400 hover:text-zinc-200"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-            <iframe
-              src={getEmbedUrl(item.url, linkType)}
-              className="w-full h-[calc(100%-52px)] bg-white"
-              title={item.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+
+            {/* Content */}
+            <div className="h-[calc(100%-52px)] overflow-auto">
+              {linkType === "notion" ? (
+                // Notion content rendered as HTML
+                <div className="p-6">
+                  {loading && (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+                    </div>
+                  )}
+                  {error && (
+                    <div className="text-center py-20">
+                      <p className="text-red-400 mb-4">{error}</p>
+                      <Button variant="outline" onClick={handleOpenExternal}>
+                        Open in Notion
+                      </Button>
+                    </div>
+                  )}
+                  {notionContent && (
+                    <div className="text-zinc-200">
+                      {notionContent.cover && (
+                        <img
+                          src={notionContent.cover}
+                          alt=""
+                          className="w-full h-48 object-cover rounded-lg mb-6 -mt-2"
+                        />
+                      )}
+                      <h1 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                        {notionContent.icon && <span>{notionContent.icon}</span>}
+                        {notionContent.title}
+                      </h1>
+                      <div
+                        className="prose prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: notionContent.html }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Google Docs/Sheets iframe
+                <iframe
+                  src={getEmbedUrl(item.url, linkType)}
+                  className="w-full h-full bg-white"
+                  title={item.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
