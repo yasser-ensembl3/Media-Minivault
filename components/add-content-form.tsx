@@ -3,21 +3,14 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Plus, X, Loader2 } from "lucide-react"
 
 interface AddContentFormProps {
   onSuccess: () => void
 }
 
-const TYPES = ["Article", "Video", "Podcast", "Book", "Paper", "Thread", "Tool", "Other"]
-const SOURCES = ["YouTube", "Twitter", "Substack", "ArXiv", "Blog", "GitHub", "Newsletter", "Other"]
+const TYPES = ["Article", "Video", "Podcast", "Book", "Paper", "Thread", "Tool"]
+const SOURCES = ["YouTube", "Twitter", "Substack", "ArXiv", "Blog", "GitHub", "Newsletter", "Medium", "Reddit"]
 
 export function AddContentForm({ onSuccess }: AddContentFormProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -119,26 +112,34 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
           className="bg-zinc-800 border-zinc-700"
         />
         <div className="grid grid-cols-2 gap-3">
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="bg-zinc-800 border-zinc-700">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-700">
+          <div>
+            <Input
+              list="types-list"
+              placeholder="Type"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="bg-zinc-800 border-zinc-700"
+            />
+            <datalist id="types-list">
               {TYPES.map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+                <option key={t} value={t} />
               ))}
-            </SelectContent>
-          </Select>
-          <Select value={source} onValueChange={setSource}>
-            <SelectTrigger className="bg-zinc-800 border-zinc-700">
-              <SelectValue placeholder="Source" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-700">
+            </datalist>
+          </div>
+          <div>
+            <Input
+              list="sources-list"
+              placeholder="Source"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="bg-zinc-800 border-zinc-700"
+            />
+            <datalist id="sources-list">
               {SOURCES.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
+                <option key={s} value={s} />
               ))}
-            </SelectContent>
-          </Select>
+            </datalist>
+          </div>
         </div>
       </div>
 
