@@ -1,0 +1,72 @@
+# Setup Guide
+
+Get ContentVault running in minutes.
+
+## Prerequisites
+
+- Node.js 18+
+- A Notion account with API access
+- A Notion database for your content
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/contentvault.git
+cd contentvault
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Configure environment variables in `.env.local`:
+```env
+NOTION_TOKEN=secret_xxx
+NEXT_PUBLIC_NOTION_DATABASE_ID=xxx
+NEXT_PUBLIC_SITE_NAME=ContentVault
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+5. Open [http://localhost:3000](http://localhost:3000)
+
+## Notion Integration Setup
+
+### Step 1: Create an Integration
+
+1. Go to [notion.so/my-integrations](https://notion.so/my-integrations)
+2. Click "New integration"
+3. Give it a name (e.g., "ContentVault")
+4. Select your workspace
+5. Copy the "Internal Integration Token"
+
+### Step 2: Share Your Database
+
+1. Open your Notion database
+2. Click "Share" in the top right
+3. Click "Invite" and search for your integration
+4. Click "Invite" to confirm
+
+### Step 3: Get the Database ID
+
+1. Open your Notion database in a browser
+2. Copy the ID from the URL:
+   ```
+   https://notion.so/myworkspace/abc123def456...
+                                  └── This is your database ID
+   ```
+
+## Production Deployment
+
+ContentVault works great with Vercel:
+
+```bash
+npm run build
+```
+
+Set the same environment variables in your hosting platform.

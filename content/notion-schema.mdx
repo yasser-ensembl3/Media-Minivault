@@ -1,0 +1,63 @@
+# Notion Database Schema
+
+Your Notion database should have the following properties for ContentVault to work correctly.
+
+## Required Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| **Title** (or Name) | Title | The content title |
+| **URL** | URL | Direct link to the content |
+| **Type** | Select | Content category |
+| **Status** | Select | Reading progress |
+| **Date Added** | Date | When the content was added |
+
+## Optional Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| Source | Select | Where the content came from |
+| Tags | Multi-select | Custom tags for organization |
+| Priority | Select | Priority level |
+| Notes | Text | Personal notes about the content |
+
+## Suggested Select Options
+
+### Type Options
+- Article
+- Video
+- Podcast
+- Book
+- Paper
+- Thread
+- Tool
+- Course
+- Other
+
+### Status Options
+- Inbox
+- To Read
+- Reading
+- Done
+- Archived
+
+### Source Options
+- YouTube
+- Twitter/X
+- Substack
+- ArXiv
+- Blog
+- GitHub
+- Newsletter
+- Medium
+- Reddit
+- Hacker News
+
+## Example Database
+
+Here's what a properly configured database looks like:
+
+| Title | URL | Type | Status | Source | Date Added |
+|-------|-----|------|--------|--------|------------|
+| How to Build... | https://... | Article | Inbox | Blog | 2024-01-15 |
+| React Tutorial | https://... | Video | To Read | YouTube | 2024-01-14 |

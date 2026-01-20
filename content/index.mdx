@@ -1,0 +1,35 @@
+# ContentVault Documentation
+
+Welcome to ContentVault - your daily entry point for content consumption.
+
+## What is ContentVault?
+
+ContentVault is a read-only frontend that displays content from a single Notion database. It helps you answer: **"What should I read/watch next?"**
+
+## Quick Links
+
+- [Setup Guide](/docs/setup) - Get started with ContentVault
+- [Notion Schema](/docs/notion-schema) - Configure your Notion database
+- [API Reference](/docs/api-reference) - API endpoints documentation
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Filtering** | Filter by type, status, or source |
+| **Search** | Quick search by title |
+| **Preview** | Embedded preview for Google Docs/Sheets |
+| **Add Content** | Quick add form for new items |
+| **Keyboard Shortcuts** | Press `R` to refresh |
+
+## Architecture
+
+```
+ContentVault/
+├── app/
+│   ├── api/content/    # Notion API integration
+│   ├── vault/          # Main content list
+│   └── docs/           # This documentation
+├── components/         # React components
+└── content/docs/       # MDX documentation files
+```

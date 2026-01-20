@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, FileText, Video, Headphones, BookOpen, FileCode, MessageSquare, Wrench, File, X, Database, FileSpreadsheet } from "lucide-react"
+import { getColorFromString } from "@/lib/utils"
 
 interface ContentItemProps {
   item: {
@@ -150,7 +151,7 @@ export function ContentItem({ item }: ContentItemProps) {
               {item.type && (
                 <Badge
                   variant="outline"
-                  className={`${typeColors[item.type] || typeColors.Other} flex items-center gap-1 text-xs`}
+                  className={`${typeColors[item.type] || getColorFromString(item.type, true)} flex items-center gap-1 text-xs`}
                 >
                   {typeIcons[item.type] || typeIcons.Other}
                   {item.type}
@@ -173,14 +174,14 @@ export function ContentItem({ item }: ContentItemProps) {
 
             <div className="flex items-center gap-2 text-sm text-zinc-500 flex-wrap">
               {item.source && (
-                <span className="text-zinc-400">{item.source}</span>
+                <Badge variant="secondary" className={`${getColorFromString(item.source)} text-xs`}>
+                  {item.source}
+                </Badge>
               )}
-              {item.source && <span>•</span>}
-              <Badge variant="secondary" className={`${statusColors[item.status] || statusColors.Inbox} text-xs`}>
+              <Badge variant="secondary" className={`${statusColors[item.status] || getColorFromString(item.status)} text-xs`}>
                 {item.status}
               </Badge>
-              <span>•</span>
-              <span>{getRelativeTime(item.dateAdded)}</span>
+              <span className="text-zinc-500">{getRelativeTime(item.dateAdded)}</span>
             </div>
           </div>
 

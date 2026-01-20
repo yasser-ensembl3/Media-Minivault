@@ -1,0 +1,98 @@
+# API Reference
+
+ContentVault exposes a simple REST API for interacting with your Notion database.
+
+## Endpoints
+
+### GET /api/content
+
+Fetches all content from the Notion database.
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by content type |
+| `status` | string | Filter by status |
+| `source` | string | Filter by source |
+| `search` | string | Search in title |
+
+#### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "page-id-123",
+      "title": "Article Title",
+      "url": "https://example.com/article",
+      "type": "Article",
+      "source": "Blog",
+      "status": "Inbox",
+      "dateAdded": "2024-01-15",
+      "notionUrl": "https://notion.so/..."
+    }
+  ],
+  "filters": {
+    "types": ["Article", "Video", "Podcast"],
+    "sources": ["YouTube", "Blog", "Twitter"],
+    "statuses": ["Inbox", "To Read", "Done"]
+  }
+}
+```
+
+#### Example
+
+```bash
+# Get all content
+curl http://localhost:3000/api/content
+
+# Filter by type
+curl http://localhost:3000/api/content?type=Article
+
+# Search
+curl http://localhost:3000/api/content?search=react
+```
+
+---
+
+### POST /api/content
+
+Adds new content to the Notion database.
+
+#### Request Body
+
+```json
+{
+  "title": "Content Title",
+  "url": "https://example.com",
+  "type": "Article",
+  "source": "Blog",
+  "status": "Inbox"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | Yes | Content title |
+| `url` | string | Yes | Content URL |
+| `type` | string | No | Content type |
+| `source` | string | No | Content source |
+| `status` | string | No | Status (defaults to "Inbox") |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "id": "new-page-id-456"
+}
+```
+
+#### Example
+
+```bash
+curl -X POST http://localhost:3000/api/content \
+  -H "Content-Type: application/json" \
+  -d '{"title": "New Article", "url": "https://example.com"}'
+```

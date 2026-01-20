@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" dir="ltr" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} bg-zinc-950 text-zinc-100 antialiased`}>
         {children}
       </body>
