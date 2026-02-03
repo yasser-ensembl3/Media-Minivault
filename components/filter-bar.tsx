@@ -32,9 +32,9 @@ export function FilterBar({
   onStatusChange,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
       <Select value={selectedType} onValueChange={onTypeChange}>
-        <SelectTrigger className="w-[140px] bg-zinc-900 border-zinc-700">
+        <SelectTrigger className="w-[110px] sm:w-[140px] bg-zinc-900 border-zinc-700 h-10 text-sm flex-shrink-0">
           <SelectValue placeholder="Type" />
         </SelectTrigger>
         <SelectContent className="bg-zinc-900 border-zinc-700">
@@ -48,7 +48,7 @@ export function FilterBar({
       </Select>
 
       <Select value={selectedStatus} onValueChange={onStatusChange}>
-        <SelectTrigger className="w-[140px] bg-zinc-900 border-zinc-700">
+        <SelectTrigger className="w-[110px] sm:w-[140px] bg-zinc-900 border-zinc-700 h-10 text-sm flex-shrink-0">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent className="bg-zinc-900 border-zinc-700">
@@ -62,7 +62,7 @@ export function FilterBar({
       </Select>
 
       <Select value={selectedSource} onValueChange={onSourceChange}>
-        <SelectTrigger className="w-[140px] bg-zinc-900 border-zinc-700">
+        <SelectTrigger className="w-[110px] sm:w-[140px] bg-zinc-900 border-zinc-700 h-10 text-sm flex-shrink-0">
           <SelectValue placeholder="Source" />
         </SelectTrigger>
         <SelectContent className="bg-zinc-900 border-zinc-700">

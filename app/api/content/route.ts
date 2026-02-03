@@ -3,6 +3,88 @@ import { NextResponse } from "next/server"
 const NOTION_TOKEN = process.env.NOTION_TOKEN
 const DATABASE_ID = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID
 
+// PATCH - Update content status
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json()
+    const { id, status } = body
+
+    if (!id || !status) {
+      return NextResponse.json(
+        { error: "ID and status are required" },
+        { status: 400 }
+      )
+    }
+
+    const response = await fetch(`https://api.notion.com/v1/pages/${id}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        properties: {
+          Status: { select: { name: status } },
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || "Failed to update status")
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error updating status:", error)
+    return NextResponse.json(
+      { error: "Failed to update status" },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Archive content (Notion API only supports archiving)
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get("id")
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "ID is required" },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const response = await fetch(`https://api.notion.com/v1/pages/${id}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        archived: true,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || "Failed to delete content")
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting content:", error)
+    return NextResponse.json(
+      { error: "Failed to delete content" },
+      { status: 500 }
+    )
+  }
+}
+
 // POST - Add new content
 export async function POST(request: Request) {
   if (!DATABASE_ID) {
@@ -122,6 +204,13 @@ export async function GET(request: Request) {
 
     const response = await queryNotionDatabase(filters)
 
+    interface NotionFile {
+      name: string
+      type: "file" | "external"
+      file?: { url: string; expiry_time: string }
+      external?: { url: string }
+    }
+
     interface NotionPage {
       id: string
       url: string
@@ -132,14 +221,23 @@ export async function GET(request: Request) {
         URL?: { url?: string }
         Type?: { select?: { name?: string } }
         Source?: { select?: { name?: string } }
+        Channel?: { rich_text?: Array<{ plain_text?: string }> }
         Status?: { select?: { name?: string } }
         "Date Added"?: { date?: { start?: string } }
         Notes?: { rich_text?: Array<{ plain_text?: string }> }
+        "Fichiers et médias"?: { files?: NotionFile[] }
       }
     }
 
     const items = (response.results as NotionPage[]).map((page) => {
       const properties = page.properties
+
+      // Extract .md file URL if present
+      const files = properties["Fichiers et médias"]?.files || []
+      const mdFile = files.find((f) => f.name?.endsWith(".md"))
+      const mdFileUrl = mdFile?.type === "file"
+        ? mdFile.file?.url
+        : mdFile?.external?.url
 
       return {
         id: page.id,
@@ -150,10 +248,12 @@ export async function GET(request: Request) {
         url: properties.URL?.url || null,
         type: properties.Type?.select?.name || null,
         source: properties.Source?.select?.name || null,
+        channel: properties.Channel?.rich_text?.[0]?.plain_text || null,
         status: properties.Status?.select?.name || "Inbox",
         dateAdded: properties["Date Added"]?.date?.start || page.created_time,
         notes: properties.Notes?.rich_text?.[0]?.plain_text || null,
         notionUrl: page.url,
+        mdFileUrl: mdFileUrl || null,
       }
     })
 
@@ -161,6 +261,9 @@ export async function GET(request: Request) {
     const allTypes = [...new Set(items.map((item) => item.type).filter(Boolean))]
     const allSources = [
       ...new Set(items.map((item) => item.source).filter(Boolean)),
+    ]
+    const allChannels = [
+      ...new Set(items.map((item) => item.channel).filter(Boolean)),
     ]
     const allStatuses = [
       ...new Set(items.map((item) => item.status).filter(Boolean)),
@@ -171,6 +274,7 @@ export async function GET(request: Request) {
       filters: {
         types: allTypes,
         sources: allSources,
+        channels: allChannels,
         statuses: allStatuses,
       },
     })

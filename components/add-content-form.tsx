@@ -68,26 +68,26 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
       <Button
         onClick={() => setIsOpen(true)}
         variant="outline"
-        className="gap-2 border-zinc-700 hover:bg-zinc-800"
+        className="gap-2 border-zinc-700 hover:bg-zinc-800 h-10 w-full sm:w-auto"
       >
-        <Plus className="h-4 w-4" />
-        Add
+        <Plus className="h-5 w-5" />
+        Add Content
       </Button>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 rounded-lg border border-zinc-700 bg-zinc-900/80 space-y-4">
+    <form onSubmit={handleSubmit} className="p-3 sm:p-4 rounded-lg border border-zinc-700 bg-zinc-900/80 space-y-3 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-medium text-zinc-200">Add Content</h3>
+        <h3 className="font-medium text-zinc-200 text-sm sm:text-base">Add Content</h3>
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={() => { setIsOpen(false); resetForm() }}
-          className="h-8 w-8 text-zinc-500"
+          className="h-9 w-9 text-zinc-500"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </Button>
       </div>
 
@@ -101,7 +101,7 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          className="bg-zinc-800 border-zinc-700"
+          className="bg-zinc-800 border-zinc-700 h-11 text-base"
         />
         <Input
           placeholder="URL *"
@@ -109,16 +109,16 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           required
-          className="bg-zinc-800 border-zinc-700"
+          className="bg-zinc-800 border-zinc-700 h-11 text-base"
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <div>
             <Input
               list="types-list"
               placeholder="Type"
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="bg-zinc-800 border-zinc-700"
+              className="bg-zinc-800 border-zinc-700 h-11 text-base"
             />
             <datalist id="types-list">
               {TYPES.map((t) => (
@@ -132,7 +132,7 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
               placeholder="Source"
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              className="bg-zinc-800 border-zinc-700"
+              className="bg-zinc-800 border-zinc-700 h-11 text-base"
             />
             <datalist id="sources-list">
               {SOURCES.map((s) => (
@@ -143,17 +143,17 @@ export function AddContentForm({ onSuccess }: AddContentFormProps) {
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
         <Button
           type="button"
           variant="ghost"
           onClick={() => { setIsOpen(false); resetForm() }}
-          className="text-zinc-400"
+          className="text-zinc-400 h-11"
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={loading || !title || !url}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+        <Button type="submit" disabled={loading || !title || !url} className="h-11">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Add Content"}
         </Button>
       </div>
     </form>

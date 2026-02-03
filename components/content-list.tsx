@@ -14,9 +14,11 @@ interface ContentItemData {
   url: string | null
   type: string | null
   source: string | null
+  channel: string | null
   status: string
   dateAdded: string
   notionUrl: string
+  mdFileUrl: string | null
 }
 
 interface ApiResponse {
@@ -24,11 +26,17 @@ interface ApiResponse {
   filters: {
     types: string[]
     sources: string[]
+    channels: string[]
     statuses: string[]
   }
 }
 
-export function ContentList() {
+interface ContentListProps {
+  mode?: "unread" | "read" | "all"
+  showAddForm?: boolean
+}
+
+export function ContentList({ mode = "unread", showAddForm = true }: ContentListProps) {
   const [items, setItems] = useState<ContentItemData[]>([])
   const [filteredItems, setFilteredItems] = useState<ContentItemData[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,6 +84,13 @@ export function ContentList() {
   useEffect(() => {
     let result = items
 
+    // Apply mode filter first
+    if (mode === "unread") {
+      result = result.filter((item) => item.status !== "Done")
+    } else if (mode === "read") {
+      result = result.filter((item) => item.status === "Done")
+    }
+
     if (selectedType !== "all") {
       result = result.filter((item) => item.type === selectedType)
     }
@@ -94,7 +109,41 @@ export function ContentList() {
     }
 
     setFilteredItems(result)
-  }, [items, selectedType, selectedSource, selectedStatus, searchQuery])
+  }, [items, mode, selectedType, selectedSource, selectedStatus, searchQuery])
+
+  // Handle status change
+  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
+    const response = await fetch("/api/content", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: newStatus }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to update status")
+    }
+
+    // Update local state
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, status: newStatus } : item
+      )
+    )
+  }, [])
+
+  // Handle delete
+  const handleDelete = useCallback(async (id: string) => {
+    const response = await fetch(`/api/content?id=${id}`, {
+      method: "DELETE",
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to delete content")
+    }
+
+    // Remove from local state
+    setItems((prev) => prev.filter((item) => item.id !== id))
+  }, [])
 
   // Keyboard navigation
   useEffect(() => {
@@ -133,42 +182,45 @@ export function ContentList() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-        />
-        <div className="flex items-center gap-3">
-          <FilterBar
-            types={types}
-            sources={sources}
-            statuses={statuses}
-            selectedType={selectedType}
-            selectedSource={selectedSource}
-            selectedStatus={selectedStatus}
-            onTypeChange={setSelectedType}
-            onSourceChange={setSelectedSource}
-            onStatusChange={setSelectedStatus}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Mobile optimized */}
+      <div className="space-y-3">
+        {/* Search + Refresh row */}
+        <div className="flex gap-2 items-center">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
           />
           <Button
             variant="ghost"
             size="icon"
             onClick={fetchContent}
-            className="text-zinc-500 hover:text-zinc-300"
+            className="text-zinc-500 hover:text-zinc-300 h-10 w-10 flex-shrink-0"
             title="Refresh (R)"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Filters - horizontal scroll on mobile */}
+        <FilterBar
+          types={types}
+          sources={sources}
+          statuses={statuses}
+          selectedType={selectedType}
+          selectedSource={selectedSource}
+          selectedStatus={selectedStatus}
+          onTypeChange={setSelectedType}
+          onSourceChange={setSelectedSource}
+          onStatusChange={setSelectedStatus}
+        />
       </div>
 
       {/* Add Content */}
-      <AddContentForm onSuccess={fetchContent} />
+      {showAddForm && <AddContentForm onSuccess={fetchContent} />}
 
       {/* Stats */}
-      <div className="text-sm text-zinc-500">
+      <div className="text-xs sm:text-sm text-zinc-500">
         {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
         {(selectedType !== "all" || selectedSource !== "all" || selectedStatus !== "all" || searchQuery) && (
           <span> (filtered from {items.length})</span>
@@ -187,9 +239,14 @@ export function ContentList() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredItems.map((item) => (
-            <ContentItem key={item.id} item={item} />
+            <ContentItem
+              key={item.id}
+              item={item}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
