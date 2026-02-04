@@ -27,7 +27,7 @@ export default function ArchivePage() {
         </header>
 
         {/* Content - Read items only */}
-        <ContentList mode="read" showAddForm={false} />
+        <ContentList mode="read" />
 
         {/* Footer - hidden on mobile */}
         <footer className="hidden sm:block mt-12 pt-6 border-t border-zinc-800 text-center text-sm text-zinc-600">
