@@ -2,9 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { ContentItem } from "./content-item"
-import { FilterBar } from "./filter-bar"
-import { SearchInput } from "./search-input"
-import { AddContentForm } from "./add-content-form"
 import { Loader2, Inbox, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -33,25 +30,13 @@ interface ApiResponse {
 
 interface ContentListProps {
   mode?: "unread" | "read" | "all"
-  showAddForm?: boolean
 }
 
-export function ContentList({ mode = "unread", showAddForm = true }: ContentListProps) {
+export function ContentList({ mode = "unread" }: ContentListProps) {
   const [items, setItems] = useState<ContentItemData[]>([])
   const [filteredItems, setFilteredItems] = useState<ContentItemData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Filter options from API
-  const [types, setTypes] = useState<string[]>([])
-  const [sources, setSources] = useState<string[]>([])
-  const [statuses, setStatuses] = useState<string[]>([])
-
-  // Selected filters
-  const [selectedType, setSelectedType] = useState("all")
-  const [selectedSource, setSelectedSource] = useState("all")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
 
   const fetchContent = useCallback(async () => {
     setLoading(true)
@@ -66,9 +51,6 @@ export function ContentList({ mode = "unread", showAddForm = true }: ContentList
       const data: ApiResponse = await response.json()
       setItems(data.items)
       setFilteredItems(data.items)
-      setTypes(data.filters.types)
-      setSources(data.filters.sources)
-      setStatuses(data.filters.statuses)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
@@ -80,36 +62,18 @@ export function ContentList({ mode = "unread", showAddForm = true }: ContentList
     fetchContent()
   }, [fetchContent])
 
-  // Filter items locally
+  // Filter items by mode
   useEffect(() => {
     let result = items
 
-    // Apply mode filter first
     if (mode === "unread") {
       result = result.filter((item) => item.status !== "Done")
     } else if (mode === "read") {
       result = result.filter((item) => item.status === "Done")
     }
 
-    if (selectedType !== "all") {
-      result = result.filter((item) => item.type === selectedType)
-    }
-
-    if (selectedSource !== "all") {
-      result = result.filter((item) => item.source === selectedSource)
-    }
-
-    if (selectedStatus !== "all") {
-      result = result.filter((item) => item.status === selectedStatus)
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter((item) => item.title.toLowerCase().includes(query))
-    }
-
     setFilteredItems(result)
-  }, [items, mode, selectedType, selectedSource, selectedStatus, searchQuery])
+  }, [items, mode])
 
   // Handle status change
   const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
@@ -183,48 +147,20 @@ export function ContentList({ mode = "unread", showAddForm = true }: ContentList
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header - Mobile optimized */}
-      <div className="space-y-3">
-        {/* Search + Refresh row */}
-        <div className="flex gap-2 items-center">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={fetchContent}
-            className="text-zinc-500 hover:text-zinc-300 h-10 w-10 flex-shrink-0"
-            title="Refresh (R)"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </Button>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs sm:text-sm text-zinc-500">
+          {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
         </div>
-
-        {/* Filters - horizontal scroll on mobile */}
-        <FilterBar
-          types={types}
-          sources={sources}
-          statuses={statuses}
-          selectedType={selectedType}
-          selectedSource={selectedSource}
-          selectedStatus={selectedStatus}
-          onTypeChange={setSelectedType}
-          onSourceChange={setSelectedSource}
-          onStatusChange={setSelectedStatus}
-        />
-      </div>
-
-      {/* Add Content */}
-      {showAddForm && <AddContentForm onSuccess={fetchContent} />}
-
-      {/* Stats */}
-      <div className="text-xs sm:text-sm text-zinc-500">
-        {filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}
-        {(selectedType !== "all" || selectedSource !== "all" || selectedStatus !== "all" || searchQuery) && (
-          <span> (filtered from {items.length})</span>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={fetchContent}
+          className="text-zinc-500 hover:text-zinc-300 h-10 w-10"
+          title="Refresh (R)"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Content list */}
@@ -233,9 +169,7 @@ export function ContentList({ mode = "unread", showAddForm = true }: ContentList
           <Inbox className="h-12 w-12 text-zinc-600 mb-4" />
           <p className="text-zinc-400 mb-2">No content found</p>
           <p className="text-zinc-500 text-sm">
-            {searchQuery || selectedType !== "all" || selectedSource !== "all" || selectedStatus !== "all"
-              ? "Try adjusting your filters"
-              : "Add some content to your Notion database"}
+            Add some content to your Notion database
           </p>
         </div>
       ) : (
