@@ -8,31 +8,21 @@ import { Button } from "@/components/ui/button"
 interface ContentItemData {
   id: string
   title: string
-  url: string | null
   type: string | null
-  source: string | null
-  channel: string | null
-  status: string
   dateAdded: string
   notionUrl: string
   mdFileUrl: string | null
+  audioUrl: string | null
 }
 
 interface ApiResponse {
   items: ContentItemData[]
   filters: {
     types: string[]
-    sources: string[]
-    channels: string[]
-    statuses: string[]
   }
 }
 
-interface ContentListProps {
-  mode?: "unread" | "read" | "all"
-}
-
-export function ContentList({ mode = "unread" }: ContentListProps) {
+export function ContentList() {
   const [items, setItems] = useState<ContentItemData[]>([])
   const [filteredItems, setFilteredItems] = useState<ContentItemData[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,52 +52,9 @@ export function ContentList({ mode = "unread" }: ContentListProps) {
     fetchContent()
   }, [fetchContent])
 
-  // Filter items by mode
   useEffect(() => {
-    let result = items
-
-    if (mode === "unread") {
-      result = result.filter((item) => item.status !== "Done")
-    } else if (mode === "read") {
-      result = result.filter((item) => item.status === "Done")
-    }
-
-    setFilteredItems(result)
-  }, [items, mode])
-
-  // Handle status change
-  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
-    const response = await fetch("/api/content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: newStatus }),
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to update status")
-    }
-
-    // Update local state
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: newStatus } : item
-      )
-    )
-  }, [])
-
-  // Handle delete
-  const handleDelete = useCallback(async (id: string) => {
-    const response = await fetch(`/api/content?id=${id}`, {
-      method: "DELETE",
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to delete content")
-    }
-
-    // Remove from local state
-    setItems((prev) => prev.filter((item) => item.id !== id))
-  }, [])
+    setFilteredItems(items)
+  }, [items])
 
   // Keyboard navigation
   useEffect(() => {
@@ -178,8 +125,6 @@ export function ContentList({ mode = "unread" }: ContentListProps) {
             <ContentItem
               key={item.id}
               item={item}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
             />
           ))}
         </div>

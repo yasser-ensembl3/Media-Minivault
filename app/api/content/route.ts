@@ -153,7 +153,7 @@ async function queryNotionDatabase(filters: object[] = []) {
       },
       body: JSON.stringify({
         filter: filters.length > 0 ? { and: filters } : undefined,
-        sorts: [{ property: "Date Added", direction: "descending" }],
+        sorts: [{ property: "Date", direction: "descending" }],
         page_size: 100,
       }),
       cache: "no-store", // No cache for instant updates
@@ -171,8 +171,6 @@ async function queryNotionDatabase(filters: object[] = []) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const type = searchParams.get("type")
-  const status = searchParams.get("status")
-  const source = searchParams.get("source")
   const search = searchParams.get("search")
 
   if (!DATABASE_ID) {
@@ -187,19 +185,11 @@ export async function GET(request: Request) {
     const filters: object[] = []
 
     if (type && type !== "all") {
-      filters.push({ property: "Type", select: { equals: type } })
-    }
-
-    if (status && status !== "all") {
-      filters.push({ property: "Status", select: { equals: status } })
-    }
-
-    if (source && source !== "all") {
-      filters.push({ property: "Source", select: { equals: source } })
+      filters.push({ property: "type", select: { equals: type } })
     }
 
     if (search) {
-      filters.push({ property: "Name", title: { contains: search } })
+      filters.push({ property: "Link", title: { contains: search } })
     }
 
     const response = await queryNotionDatabase(filters)
@@ -216,66 +206,57 @@ export async function GET(request: Request) {
       url: string
       created_time: string
       properties: {
-        Name?: { title?: Array<{ plain_text?: string }> }
-        Title?: { title?: Array<{ plain_text?: string }> }
-        URL?: { url?: string }
-        Type?: { select?: { name?: string } }
-        Source?: { select?: { name?: string } }
-        Channel?: { rich_text?: Array<{ plain_text?: string }> }
-        Status?: { select?: { name?: string } }
-        "Date Added"?: { date?: { start?: string } }
-        Notes?: { rich_text?: Array<{ plain_text?: string }> }
-        "Fichiers et médias"?: { files?: NotionFile[] }
+        Link?: { title?: Array<{ plain_text?: string }> }
+        type?: { select?: { name?: string } }
+        "Text summary"?: { files?: NotionFile[] }
+        "Audio summary"?: { files?: NotionFile[] }
+        Date?: { date?: { start?: string } }
       }
     }
 
     const items = (response.results as NotionPage[]).map((page) => {
       const properties = page.properties
 
-      // Extract .md file URL if present
-      const files = properties["Fichiers et médias"]?.files || []
-      const mdFile = files.find((f) => f.name?.endsWith(".md"))
+      // Extract .md file URL from Text summary
+      const textFiles = properties["Text summary"]?.files || []
+      const mdFile = textFiles.find((f) => f.name?.endsWith(".md"))
       const mdFileUrl = mdFile?.type === "file"
         ? mdFile.file?.url
         : mdFile?.external?.url
 
+      // Extract audio URL from Audio summary (ElevenReader link or mp3)
+      const audioFiles = properties["Audio summary"]?.files || []
+      const audioFile = audioFiles[0]
+      let audioUrl = audioFile?.type === "file"
+        ? audioFile.file?.url
+        : audioFile?.external?.url
+
+      // Convert Google Drive view URLs to direct download for mp3
+      if (audioUrl) {
+        const driveMatch = audioUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/)
+        if (driveMatch) {
+          audioUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`
+        }
+      }
+
       return {
         id: page.id,
-        title:
-          properties.Name?.title?.[0]?.plain_text ||
-          properties.Title?.title?.[0]?.plain_text ||
-          "Untitled",
-        url: properties.URL?.url || null,
-        type: properties.Type?.select?.name || null,
-        source: properties.Source?.select?.name || null,
-        channel: properties.Channel?.rich_text?.[0]?.plain_text || null,
-        status: properties.Status?.select?.name || "Inbox",
-        dateAdded: properties["Date Added"]?.date?.start || page.created_time,
-        notes: properties.Notes?.rich_text?.[0]?.plain_text || null,
+        title: properties.Link?.title?.[0]?.plain_text || "Untitled",
+        type: properties.type?.select?.name || null,
+        dateAdded: properties.Date?.date?.start || page.created_time,
         notionUrl: page.url,
         mdFileUrl: mdFileUrl || null,
+        audioUrl: audioUrl || null,
       }
     })
 
     // Get unique values for filters
     const allTypes = [...new Set(items.map((item) => item.type).filter(Boolean))]
-    const allSources = [
-      ...new Set(items.map((item) => item.source).filter(Boolean)),
-    ]
-    const allChannels = [
-      ...new Set(items.map((item) => item.channel).filter(Boolean)),
-    ]
-    const allStatuses = [
-      ...new Set(items.map((item) => item.status).filter(Boolean)),
-    ]
 
     return NextResponse.json({
       items,
       filters: {
         types: allTypes,
-        sources: allSources,
-        channels: allChannels,
-        statuses: allStatuses,
       },
     })
   } catch (error) {

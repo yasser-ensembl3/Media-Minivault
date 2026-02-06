@@ -3,99 +3,37 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, FileText, Video, Headphones, BookOpen, FileCode, MessageSquare, Wrench, File, X, Database, FileSpreadsheet, Check, Undo2, Trash2, Loader2, Headphones as AudioIcon, Download } from "lucide-react"
-import { getColorFromString } from "@/lib/utils"
+import { FileText, Video, Headphones, MessageSquare, X, Loader2, Headphones as AudioIcon, Download } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 
 interface ContentItemProps {
   item: {
     id: string
     title: string
-    url: string | null
     type: string | null
-    source: string | null
-    channel: string | null
-    status: string
     dateAdded: string
     notionUrl: string
     mdFileUrl: string | null
+    audioUrl: string | null
   }
-  onStatusChange?: (id: string, newStatus: string) => Promise<void>
-  onDelete?: (id: string) => Promise<void>
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
-  Article: <FileText className="h-4 w-4" />,
-  Video: <Video className="h-4 w-4" />,
   Podcast: <Headphones className="h-4 w-4" />,
-  Book: <BookOpen className="h-4 w-4" />,
-  Paper: <FileCode className="h-4 w-4" />,
-  Thread: <MessageSquare className="h-4 w-4" />,
-  Tool: <Wrench className="h-4 w-4" />,
-  Other: <File className="h-4 w-4" />,
+  "Youtube video": <Video className="h-4 w-4" />,
+  Audio: <Headphones className="h-4 w-4" />,
+  "Talk Show": <MessageSquare className="h-4 w-4" />,
+  Post: <FileText className="h-4 w-4" />,
+  "Article/News": <FileText className="h-4 w-4" />,
 }
 
 const typeColors: Record<string, string> = {
-  Article: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  Video: "bg-red-500/20 text-red-400 border-red-500/30",
   Podcast: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  Book: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  Paper: "bg-green-500/20 text-green-400 border-green-500/30",
-  Thread: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  Tool: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  Other: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-}
-
-const statusColors: Record<string, string> = {
-  Inbox: "bg-zinc-500/20 text-zinc-400",
-  "To Read": "bg-yellow-500/20 text-yellow-400",
-  Reading: "bg-blue-500/20 text-blue-400",
-  Done: "bg-green-500/20 text-green-400",
-  Archived: "bg-zinc-700/20 text-zinc-500",
-}
-
-type LinkType = "notion" | "google-doc" | "google-sheet" | "external"
-
-function detectLinkType(url: string | null): LinkType {
-  if (!url) return "external"
-  if (url.includes("notion.so") || url.includes("notion.site")) return "notion"
-  if (url.includes("docs.google.com/document")) return "google-doc"
-  if (url.includes("docs.google.com/spreadsheets")) return "google-sheet"
-  return "external"
-}
-
-function getEmbedUrl(url: string, linkType: LinkType): string {
-  if (linkType === "google-doc" || linkType === "google-sheet") {
-    if (url.includes("/edit")) {
-      return url.replace("/edit", "/preview")
-    }
-    if (!url.includes("/preview")) {
-      return url + (url.includes("?") ? "&" : "?") + "embedded=true"
-    }
-  }
-  return url
-}
-
-function getLinkIcon(linkType: LinkType) {
-  switch (linkType) {
-    case "notion":
-      return <Database className="h-3 w-3" />
-    case "google-doc":
-      return <FileText className="h-3 w-3" />
-    case "google-sheet":
-      return <FileSpreadsheet className="h-3 w-3" />
-    default:
-      return <ExternalLink className="h-3 w-3" />
-  }
-}
-
-function getLinkLabel(linkType: LinkType) {
-  switch (linkType) {
-    case "notion": return "Notion"
-    case "google-doc": return "Google Doc"
-    case "google-sheet": return "Google Sheet"
-    default: return null
-  }
+  "Youtube video": "bg-red-500/20 text-red-400 border-red-500/30",
+  Audio: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "Talk Show": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  Post: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "Article/News": "bg-green-500/20 text-green-400 border-green-500/30",
 }
 
 function getRelativeTime(dateString: string): string {
@@ -112,56 +50,13 @@ function getRelativeTime(dateString: string): string {
   return `${Math.floor(diffInDays / 365)} years ago`
 }
 
-export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps) {
-  const [showPreview, setShowPreview] = useState(false)
+export function ContentItem({ item }: ContentItemProps) {
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(false)
   const [markdownContent, setMarkdownContent] = useState<string | null>(null)
   const [markdownLoading, setMarkdownLoading] = useState(false)
-  const [actionLoading, setActionLoading] = useState<"status" | "delete" | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const linkType = detectLinkType(item.url)
-  const isRead = item.status === "Done"
   const hasMdFile = !!item.mdFileUrl
-
-  const handleStatusToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!onStatusChange || actionLoading) return
-
-    setActionLoading("status")
-    try {
-      const newStatus = isRead ? "To Read" : "Done"
-      await onStatusChange(item.id, newStatus)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setShowDeleteConfirm(true)
-  }
-
-  const handleDeleteConfirm = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!onDelete || actionLoading) return
-
-    setActionLoading("delete")
-    try {
-      await onDelete(item.id)
-    } finally {
-      setActionLoading(null)
-      setShowDeleteConfirm(false)
-    }
-  }
-
-  const handleDeleteCancel = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setShowDeleteConfirm(false)
-  }
-
-  // Only Google Docs/Sheets can be embedded
-  const isEmbeddable = linkType === "google-doc" || linkType === "google-sheet"
+  const hasAudio = !!item.audioUrl
 
   const fetchMarkdownContent = async () => {
     if (!item.mdFileUrl) return
@@ -181,7 +76,6 @@ export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps
   }
 
   const handleClick = () => {
-    // If there's a markdown file, show the markdown preview
     if (hasMdFile) {
       setShowMarkdownPreview(true)
       if (!markdownContent) {
@@ -190,28 +84,19 @@ export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps
       return
     }
 
-    if (!item.url) {
-      window.open(item.notionUrl, "_blank", "noopener,noreferrer")
+    if (hasAudio) {
+      window.open(item.audioUrl!, "_blank", "noopener,noreferrer")
       return
     }
 
-    if (isEmbeddable) {
-      setShowPreview(true)
-    } else {
-      // Notion and external links open directly
-      window.open(item.url, "_blank", "noopener,noreferrer")
-    }
+    window.open(item.notionUrl, "_blank", "noopener,noreferrer")
   }
 
-  const handleOpenExternal = (e?: React.MouseEvent) => {
+  const handleOpenAudio = (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    if (item.url) {
-      window.open(item.url, "_blank", "noopener,noreferrer")
+    if (item.audioUrl) {
+      window.open(item.audioUrl, "_blank", "noopener,noreferrer")
     }
-  }
-
-  const closePreview = () => {
-    setShowPreview(false)
   }
 
   const closeMarkdownPreview = () => {
@@ -249,134 +134,23 @@ export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps
             </h3>
             {/* Meta info row */}
             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-              {item.channel && (
-                <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/40 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0">
-                  {item.channel}
-                </Badge>
-              )}
-              {item.source && (
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0">
-                  {item.source}
+              {item.type && (
+                <Badge className={`${typeColors[item.type] || "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"} text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0`}>
+                  {typeIcons[item.type]} {item.type}
                 </Badge>
               )}
               <span className="text-[9px] sm:text-[10px] text-zinc-600">{getRelativeTime(item.dateAdded)}</span>
             </div>
           </button>
 
-          {/* Action buttons - compact */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {onStatusChange && (
-              <button
-                onClick={handleStatusToggle}
-                className={`p-2 sm:p-1.5 rounded-md border transition-all duration-200 ${
-                  isRead
-                    ? "bg-green-500/20 border-green-500/40 text-green-400"
-                    : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-green-500/20 hover:border-green-500/40 hover:text-green-400"
-                }`}
-                title={isRead ? "Mark as unread" : "Mark as read"}
-              >
-                {actionLoading === "status" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isRead ? (
-                  <Undo2 className="h-4 w-4" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </button>
-            )}
-
-            {onDelete && !showDeleteConfirm && (
-              <button
-                onClick={handleDeleteClick}
-                className="p-2 sm:p-1.5 rounded-md border bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 transition-all duration-200"
-                title="Delete"
-              >
-                {actionLoading === "delete" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </button>
-            )}
-
-            {showDeleteConfirm && (
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleDeleteConfirm}
-                  disabled={actionLoading === "delete"}
-                  className="h-7 px-2 text-xs"
-                >
-                  {actionLoading === "delete" ? <Loader2 className="h-3 w-3 animate-spin" /> : "OK"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleDeleteCancel}
-                  disabled={actionLoading === "delete"}
-                  className="h-7 px-2 text-xs"
-                >
-                  X
-                </Button>
-              </div>
-            )}
-          </div>
+          {/* Audio indicator */}
+          {hasAudio && (
+            <div className="flex-shrink-0">
+              <Headphones className="h-4 w-4 text-violet-400" />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Preview Modal */}
-      {showPreview && item.url && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={closePreview}
-        >
-          <div
-            className="relative w-full max-w-4xl h-[90vh] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-zinc-700 bg-zinc-800">
-              <div className="flex items-center gap-2">
-                {getLinkIcon(linkType)}
-                <span className="text-sm text-zinc-300 truncate max-w-md">
-                  {item.title}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleOpenExternal}
-                  className="text-zinc-400 hover:text-zinc-200 gap-1"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={closePreview}
-                  className="text-zinc-400 hover:text-zinc-200"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Content - Google Docs/Sheets iframe */}
-            <div className="h-[calc(100%-52px)]">
-              <iframe
-                src={getEmbedUrl(item.url, linkType)}
-                className="w-full h-full bg-white"
-                title={item.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Markdown Preview Modal */}
       {showMarkdownPreview && (
@@ -405,11 +179,11 @@ export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps
                     <span className="hidden sm:inline">.md</span>
                   </Button>
                 )}
-                {item.url && (
+                {item.audioUrl && (
                   <Button
                     variant="default"
                     size="sm"
-                    onClick={() => handleOpenExternal()}
+                    onClick={() => handleOpenAudio()}
                     className="gap-1.5 bg-violet-600 hover:bg-violet-500 text-white"
                   >
                     <AudioIcon className="h-4 w-4" />
@@ -454,11 +228,11 @@ export function ContentItem({ item, onStatusChange, onDelete }: ContentItemProps
                   <Download className="h-5 w-5" />
                 </Button>
               )}
-              {item.url && (
+              {item.audioUrl && (
                 <Button
                   variant="default"
                   size="lg"
-                  onClick={() => handleOpenExternal()}
+                  onClick={() => handleOpenAudio()}
                   className="flex-1 gap-2 bg-violet-600 hover:bg-violet-500 text-white"
                 >
                   <AudioIcon className="h-5 w-5" />

@@ -12,7 +12,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(fileUrl)
+    // Convert Google Drive view URLs to direct download URLs
+    let url = fileUrl
+    const driveMatch = fileUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/)
+    if (driveMatch) {
+      url = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`
+    }
+
+    const response = await fetch(url)
 
     if (!response.ok) {
       throw new Error("Failed to fetch markdown file")

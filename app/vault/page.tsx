@@ -38,7 +38,7 @@ export default function VaultPage() {
         </header>
 
         {/* Content - Unread items only */}
-        <ContentList mode="unread" />
+        <ContentList />
 
         {/* Footer - hidden on mobile */}
         <footer className="hidden sm:block mt-12 pt-6 border-t border-zinc-800 text-center text-sm text-zinc-600">
