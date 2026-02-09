@@ -1,8 +1,8 @@
 import { ContentList } from "@/components/content-list"
-import { CheckCircle, ArrowLeft } from "lucide-react"
+import { Heart, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-export default function ArchivePage() {
+export default function FavoritesPage() {
   return (
     <main className="min-h-screen bg-zinc-950">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
@@ -10,8 +10,8 @@ export default function ArchivePage() {
         <header className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 sm:gap-3">
-              <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
-              <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">Archive</h1>
+              <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-pink-500" />
+              <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">Favorites</h1>
             </div>
             <Link
               href="/vault"
@@ -22,12 +22,12 @@ export default function ArchivePage() {
             </Link>
           </div>
           <p className="text-sm sm:text-base text-zinc-500">
-            Content you&apos;ve already read
+            Your favorite content
           </p>
         </header>
 
-        {/* Content - Read items only */}
-        <ContentList mode="read" />
+        {/* Content - Favorites only */}
+        <ContentList mode="favorites" />
 
         {/* Footer - hidden on mobile */}
         <footer className="hidden sm:block mt-12 pt-6 border-t border-zinc-800 text-center text-sm text-zinc-600">

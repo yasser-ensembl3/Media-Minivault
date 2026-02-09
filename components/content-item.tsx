@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Video, Headphones, MessageSquare, X, Loader2, Headphones as AudioIcon, Download } from "lucide-react"
+import { FileText, Video, Headphones, MessageSquare, X, Loader2, Headphones as AudioIcon, Download, Check, Undo2, Heart } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 
 interface ContentItemProps {
@@ -11,11 +11,16 @@ interface ContentItemProps {
     id: string
     title: string
     type: string | null
+    status: string | null
+    favorite: boolean
     dateAdded: string
     notionUrl: string
     mdFileUrl: string | null
     audioUrl: string | null
   }
+  mode?: "unread" | "read" | "favorites"
+  onStatusChange?: (id: string, newStatus: string) => void
+  onFavoriteToggle?: (id: string, favorite: boolean) => void
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -50,10 +55,12 @@ function getRelativeTime(dateString: string): string {
   return `${Math.floor(diffInDays / 365)} years ago`
 }
 
-export function ContentItem({ item }: ContentItemProps) {
+export function ContentItem({ item, mode = "unread", onStatusChange, onFavoriteToggle }: ContentItemProps) {
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(false)
   const [markdownContent, setMarkdownContent] = useState<string | null>(null)
   const [markdownLoading, setMarkdownLoading] = useState(false)
+  const [statusLoading, setStatusLoading] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
 
   const hasMdFile = !!item.mdFileUrl
   const hasAudio = !!item.audioUrl
@@ -97,6 +104,23 @@ export function ContentItem({ item }: ContentItemProps) {
     if (item.audioUrl) {
       window.open(item.audioUrl, "_blank", "noopener,noreferrer")
     }
+  }
+
+  const handleToggleStatus = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!onStatusChange || statusLoading) return
+    const newStatus = mode === "unread" ? "Done" : "To Read"
+    setStatusLoading(true)
+    await onStatusChange(item.id, newStatus)
+    setStatusLoading(false)
+  }
+
+  const handleFavoriteToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!onFavoriteToggle || favoriteLoading) return
+    setFavoriteLoading(true)
+    await onFavoriteToggle(item.id, !item.favorite)
+    setFavoriteLoading(false)
   }
 
   const closeMarkdownPreview = () => {
@@ -149,6 +173,48 @@ export function ContentItem({ item }: ContentItemProps) {
               <Headphones className="h-4 w-4 text-violet-400" />
             </div>
           )}
+
+          {/* Favorite toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleFavoriteToggle}
+            disabled={favoriteLoading}
+            className={`flex-shrink-0 h-10 w-10 ${
+              item.favorite
+                ? "text-pink-500 hover:text-pink-400 hover:bg-pink-500/10"
+                : "text-zinc-500 hover:text-pink-400 hover:bg-pink-500/10"
+            }`}
+            title={item.favorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            {favoriteLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Heart className={`h-5 w-5 ${item.favorite ? "fill-current" : ""}`} />
+            )}
+          </Button>
+
+          {/* Read/Unread toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleToggleStatus}
+            disabled={statusLoading}
+            className={`flex-shrink-0 h-10 w-10 ${
+              mode === "unread"
+                ? "text-zinc-500 hover:text-green-400 hover:bg-green-500/10"
+                : "text-zinc-500 hover:text-orange-400 hover:bg-orange-500/10"
+            }`}
+            title={mode === "unread" ? "Mark as read" : "Mark as unread"}
+          >
+            {statusLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : mode === "unread" ? (
+              <Check className="h-5 w-5" />
+            ) : (
+              <Undo2 className="h-5 w-5" />
+            )}
+          </Button>
         </div>
       </div>
 

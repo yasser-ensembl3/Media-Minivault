@@ -5,10 +5,16 @@ import { ContentItem } from "./content-item"
 import { Loader2, Inbox, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface ContentListProps {
+  mode?: "unread" | "read" | "favorites"
+}
+
 interface ContentItemData {
   id: string
   title: string
   type: string | null
+  status: string | null
+  favorite: boolean
   dateAdded: string
   notionUrl: string
   mdFileUrl: string | null
@@ -22,7 +28,7 @@ interface ApiResponse {
   }
 }
 
-export function ContentList() {
+export function ContentList({ mode = "unread" }: ContentListProps) {
   const [items, setItems] = useState<ContentItemData[]>([])
   const [filteredItems, setFilteredItems] = useState<ContentItemData[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,12 +45,59 @@ export function ContentList() {
       }
 
       const data: ApiResponse = await response.json()
-      setItems(data.items)
-      setFilteredItems(data.items)
+      const allItems = data.items
+      // Filter client-side by mode
+      const filtered = mode === "read"
+        ? allItems.filter((item) => item.status === "Done")
+        : mode === "favorites"
+        ? allItems.filter((item) => item.favorite)
+        : allItems.filter((item) => item.status !== "Done")
+      setItems(filtered)
+      setFilteredItems(filtered)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setLoading(false)
+    }
+  }, [mode])
+
+  const handleFavoriteToggle = useCallback(async (id: string, favorite: boolean) => {
+    try {
+      const response = await fetch("/api/content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, favorite }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update favorite")
+
+      // Update item locally
+      const updateFn = (prev: ContentItemData[]) =>
+        mode === "favorites" && !favorite
+          ? prev.filter((item) => item.id !== id)
+          : prev.map((item) => item.id === id ? { ...item, favorite } : item)
+      setItems(updateFn)
+      setFilteredItems(updateFn)
+    } catch (err) {
+      console.error("Error updating favorite:", err)
+    }
+  }, [mode])
+
+  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
+    try {
+      const response = await fetch("/api/content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update status")
+
+      // Remove item from current list (it moved to the other list)
+      setItems((prev) => prev.filter((item) => item.id !== id))
+      setFilteredItems((prev) => prev.filter((item) => item.id !== id))
+    } catch (err) {
+      console.error("Error updating status:", err)
     }
   }, [])
 
@@ -125,6 +178,9 @@ export function ContentList() {
             <ContentItem
               key={item.id}
               item={item}
+              mode={mode}
+              onStatusChange={handleStatusChange}
+              onFavoriteToggle={handleFavoriteToggle}
             />
           ))}
         </div>

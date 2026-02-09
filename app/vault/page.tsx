@@ -1,5 +1,5 @@
 import { ContentList } from "@/components/content-list"
-import { BookOpen, CheckCircle } from "lucide-react"
+import { BookOpen, CheckCircle, Heart } from "lucide-react"
 import Link from "next/link"
 
 export default function VaultPage() {
@@ -16,6 +16,13 @@ export default function VaultPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-zinc-100">{siteName}</h1>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
+              <Link
+                href="/vault/favorites"
+                className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-pink-400 transition p-2 sm:px-3 sm:py-1.5 rounded-lg border border-zinc-700 hover:border-pink-500/50 bg-zinc-800/50"
+              >
+                <Heart className="h-4 w-4" />
+                <span className="hidden sm:inline">Favorites</span>
+              </Link>
               <Link
                 href="/vault/archive"
                 className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-green-400 transition p-2 sm:px-3 sm:py-1.5 rounded-lg border border-zinc-700 hover:border-green-500/50 bg-zinc-800/50"
@@ -38,7 +45,7 @@ export default function VaultPage() {
         </header>
 
         {/* Content - Unread items only */}
-        <ContentList />
+        <ContentList mode="unread" />
 
         {/* Footer - hidden on mobile */}
         <footer className="hidden sm:block mt-12 pt-6 border-t border-zinc-800 text-center text-sm text-zinc-600">

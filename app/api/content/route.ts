@@ -3,17 +3,25 @@ import { NextResponse } from "next/server"
 const NOTION_TOKEN = process.env.NOTION_TOKEN
 const DATABASE_ID = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID
 
-// PATCH - Update content status
+// PATCH - Update content properties (status or favorite)
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { id, status } = body
+    const { id, status, favorite } = body
 
-    if (!id || !status) {
+    if (!id) {
       return NextResponse.json(
-        { error: "ID and status are required" },
+        { error: "ID is required" },
         { status: 400 }
       )
+    }
+
+    const properties: Record<string, unknown> = {}
+    if (status !== undefined) {
+      properties.Status = { select: { name: status } }
+    }
+    if (favorite !== undefined) {
+      properties.Favorite = { checkbox: favorite }
     }
 
     const response = await fetch(`https://api.notion.com/v1/pages/${id}`, {
@@ -23,23 +31,19 @@ export async function PATCH(request: Request) {
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        properties: {
-          Status: { select: { name: status } },
-        },
-      }),
+      body: JSON.stringify({ properties }),
     })
 
     if (!response.ok) {
       const error = await response.json()
-      throw new Error(error.message || "Failed to update status")
+      throw new Error(error.message || "Failed to update")
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error updating status:", error)
+    console.error("Error updating:", error)
     return NextResponse.json(
-      { error: "Failed to update status" },
+      { error: "Failed to update" },
       { status: 500 }
     )
   }
@@ -210,6 +214,8 @@ export async function GET(request: Request) {
         type?: { select?: { name?: string } }
         "Text summary"?: { files?: NotionFile[] }
         "Audio summary"?: { files?: NotionFile[] }
+        Status?: { select?: { name?: string } }
+        Favorite?: { checkbox?: boolean }
         Date?: { date?: { start?: string } }
       }
     }
@@ -243,6 +249,8 @@ export async function GET(request: Request) {
         id: page.id,
         title: properties.Link?.title?.[0]?.plain_text || "Untitled",
         type: properties.type?.select?.name || null,
+        status: properties.Status?.select?.name || null,
+        favorite: properties.Favorite?.checkbox || false,
         dateAdded: properties.Date?.date?.start || page.created_time,
         notionUrl: page.url,
         mdFileUrl: mdFileUrl || null,
