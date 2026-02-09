@@ -39,7 +39,7 @@ export function ContentList({ mode = "unread" }: ContentListProps) {
     setError(null)
 
     try {
-      const response = await fetch("/api/content")
+      const response = await fetch("/api/content", { cache: "no-store" })
       if (!response.ok) {
         throw new Error("Failed to fetch content")
       }

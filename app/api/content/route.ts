@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 const NOTION_TOKEN = process.env.NOTION_TOKEN
 const DATABASE_ID = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID
 
@@ -237,13 +239,7 @@ export async function GET(request: Request) {
         ? audioFile.file?.url
         : audioFile?.external?.url
 
-      // Convert Google Drive view URLs to direct download for mp3
-      if (audioUrl) {
-        const driveMatch = audioUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/)
-        if (driveMatch) {
-          audioUrl = `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`
-        }
-      }
+      // Keep Google Drive URLs as-is so they open in Drive instead of downloading
 
       return {
         id: page.id,
