@@ -5,7 +5,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_SITE_NAME || "ContentVault",
+  title: process.env.NEXT_PUBLIC_SITE_NAME || "Media Vault",
   description: "Your daily entry point for content consumption",
 }
 

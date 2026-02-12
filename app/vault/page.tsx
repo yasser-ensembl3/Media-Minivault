@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle, Heart } from "lucide-react"
 import Link from "next/link"
 
 export default function VaultPage() {
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "ContentVault"
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "Media Vault"
 
   return (
     <main className="min-h-screen bg-zinc-950">

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-ContentVault is a read-only frontend that displays content from a single Notion database. It serves as a daily entry point for content consumption (articles, videos, podcasts, etc.).
+Media Vault is a read-only frontend that displays content from a single Notion database. It serves as a daily entry point for content consumption (articles, videos, podcasts, etc.).
 
 ### Key Principles
 
@@ -15,7 +15,7 @@ ContentVault is a read-only frontend that displays content from a single Notion 
 ## Architecture
 
 ```
-ContentVault/
+MediaVault/
 ├── app/
 │   ├── api/content/route.ts   # Single API endpoint for Notion
 │   ├── globals.css
@@ -69,7 +69,7 @@ Fetches all content from Notion database.
 ```env
 NOTION_TOKEN=secret_xxx
 NEXT_PUBLIC_NOTION_DATABASE_ID=xxx
-NEXT_PUBLIC_SITE_NAME=ContentVault
+NEXT_PUBLIC_SITE_NAME=Media Vault
 ```
 
 ## Notion Database Schema

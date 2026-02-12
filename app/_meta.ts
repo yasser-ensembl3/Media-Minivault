@@ -3,7 +3,7 @@ export default {
     title: 'Home',
     display: 'hidden'
   },
-  vault: 'Content Vault',
+  vault: 'Media Vault',
   '---': {
     type: 'separator'
   },

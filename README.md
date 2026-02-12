@@ -1,4 +1,4 @@
-# ContentVault
+# Media Vault
 
 A lightweight, fast read-only frontend for consuming content from a single Notion database. Your daily entry point for "what should I read, watch, or review next?"
 
@@ -60,7 +60,7 @@ NOTION_TOKEN=secret_xxx
 NEXT_PUBLIC_NOTION_DATABASE_ID=xxx
 
 # Optional
-NEXT_PUBLIC_SITE_NAME=ContentVault
+NEXT_PUBLIC_SITE_NAME=Media Vault
 ```
 
 ## Development
